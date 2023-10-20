@@ -1,5 +1,5 @@
 
-# ANSI4PS by Alisson dos Santos - Version 1.0.7
+# ANSI4PS by Alisson dos Santos - Version 1.1.0
 
 function printText {
     Param (
@@ -144,5 +144,3 @@ function printText {
         resetAnsi
     }
 }
-
-printText -t "Hello World" -fc red -ta blink
