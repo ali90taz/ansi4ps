@@ -1,17 +1,15 @@
 
-# ANSI4PS by Alisson dos Santos - Version 1.0
+# ANSI4PS by Alisson dos Santos - Version 1.0.7
 
 function printText {
-
     Param (
         [Parameter()] [string] $T,
         [Parameter()] $FC,
         [Parameter()] $BC,
-        [Parameter()] [string] $FS
-    )
-    
+        [Parameter()] [string] $FS,
+        [Parameter()] [string] $TA
+    )   
     [string] $ansiCode = ''
-
     function ansiEscape { 
         return "$([char]27)" + "[" 
     }
@@ -31,10 +29,16 @@ function printText {
             default { return "9" }
         }
     }
-    function applyForegroundColor ($color, [ref][string] $ansiCodeRef) {
-        $ansiCodeRef.Value += "3" + (psColorToAnsiColor $color) 
+    function applyTextAnimation ([string] $aniFlags, [ref][string] $ansiCodeRef) {
+        $ansiCodeRef.Value += "5"
     }
-
+    function applyForegroundColor ($color, [ref][string] $ansiCodeRef) {
+        if ($ansiCodeRef.Value -match "[\[]{1}$") {
+            $ansiCodeRef.Value += "3" + (psColorToAnsiColor $color)
+        } else {
+            $ansiCodeRef.Value += ";3" + (psColorToAnsiColor $color)
+        }
+    }
     function applyBackgroundColor ($color, [ref][string] $ansiCodeRef) {
         if ($ansiCodeRef.Value -match "[\[]{1}$") {
             $ansiCodeRef.Value += "4" + (psColorToAnsiColor $color)
@@ -81,9 +85,13 @@ function printText {
     function applyText ([string] $text, [ref][string] $ansiCodeRef) {
         $ansiCodeRef.Value += 'm' + $text
     }
-
     function parseArguments ([ref][string] $ansiCodeRef){
-
+        function checkTextAnimation {
+            if ($TA -match "^(Blink)$") {
+                return $true
+            }
+            return $false
+        }        
         function checkForegroundColor {
             if ($FC -match "^(Black|Red|Green|Yellow|Blue|Magenta|Cyan|White)$") {
                 return $true
@@ -108,11 +116,13 @@ function printText {
             }
             return $false
         }
-        
         if ($T) {
 
             $ansiCodeRef.Value = ansiEscape
 
+            if (checkTextAnimation) {
+                applyTextAnimation $TA ($ansiCodeRef)
+            }
             if (checkForegroundColor) {
                 applyForegroundColor $FC ($ansiCodeRef)
             }
@@ -128,10 +138,11 @@ function printText {
         }
         return $false
     }
-
     if (parseArguments ([ref] $ansiCode)) {
         
         Write-Host $ansiCode
         resetAnsi
     }
 }
+
+printText -t "Hello World" -fc red -ta blink

@@ -1,0 +1,25 @@
+
+ANSI4PS Changelog:
+
+Version 1.1.0 - [10/20/23 06:53 AM] - Added blink text functionality
+
+    Added:
+        Blinks text functionality
+        Updadated README.MD
+    Limitations: 
+        Very limited colors support, eight per plane.
+        Texts and backgrounds of the same color are not corrected.
+    Issues:
+        Strange behaviors when used
+        in conjunction with native text.        
+
+Version 1.0.7 - [10/20/23 05:00 AM] - First public release
+    
+    Limitations: 
+        No text animation.
+        Very limited colors support, eight per plane.
+        Texts and backgrounds of the same color are not corrected.
+    Issues:
+        Strange behaviors when used
+        in conjunction with native text.
+                 
