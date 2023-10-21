@@ -1,5 +1,5 @@
 
-# ANSI4PS by Alisson dos Santos - Version 1.1.0
+# ANSI4PS by Alisson dos Santos - Version 1.2.0
 
 function printText {
     Param (
@@ -8,10 +8,10 @@ function printText {
         [Parameter()] $BC,
         [Parameter()] [string] $FS,
         [Parameter()] [string] $TA,
-        [Parameter()] [string[]] $GF
-    )   
+        [Parameter()] [string[]] $C
+    )  
     [string] $ansiCode = ''
-    [string[]] $globalFlags = "rst"
+    [string[]] $globalCommands = "rst", "test", "test2"
     function ansiEscape { 
         return "$([char]27)" + "[" 
     }
@@ -31,42 +31,46 @@ function printText {
             default { return "9" }
         }
     }
-    function parseGlobalFlags ([string[]] $flags) { 
-        
-        if ($GF[0].Length -lt 1) {
+    function parseCommands ([string[]] $commands) {     
+        if ($C.Count -eq 0) {
             return $false
         }
-
-        if ($GF.Count -gt 1) {
+        if ($C.Count -gt 1) {
             
             $i = 0
-            $GF.ForEach({
-                if ($globalFlags -notcontains $GF[$i]) {
+            $C.ForEach({
+                if ($globalCommands -notcontains $C[$i]) {
                     return $false
                 }
                 ++$i
             })
             $i = 0
             $match = 0
-            $flags.ForEach({
-                if ($GF -contains $flags[$i]) {
+            $commands.ForEach({
+                if ($C -contains $commands[$i]) {
                     ++$match
                 }
                 ++$i
             })
-            if ($match -eq $flags) {
+            if ($match -eq $commands.Count) {
                 return $true
             } else {
                 return $false
             }
         }
-
-        if ($globalFlags -notcontains $GF[0]) {
+        if ($globalCommands -notcontains $C[0]) {
             return $false
         }
-
-        if ($flags -contains $GF[0]) {
-            return true
+        $i = 0
+        $match = 0
+        $commands.ForEach({
+            if ($C -contains $commands[$i]) {
+                ++$match
+            }
+            ++$i
+        })
+        if ($match -eq $commands.Count) {
+            return $true
         } else {
             return $false
         }
@@ -89,7 +93,7 @@ function printText {
         }
     }
     function applyFontStyle ([string] $styleFlags, [ref][string] $ansiCodeRef) {
-
+        
         $bold = '1'
         $italic = '3'
         $underline = '4'
@@ -126,6 +130,7 @@ function printText {
     }
     function applyText ([string] $text, [ref][string] $ansiCodeRef) {
         $ansiCodeRef.Value += 'm' + $text
+        Write-Host $ansiCode
     }
     function parseArguments ([ref][string] $ansiCodeRef){
         function checkTextAnimation {
@@ -133,7 +138,7 @@ function printText {
                 return $true
             }
             return $false
-        }        
+        }                     
         function checkForegroundColor {
             if ($FC -match "^(Black|Red|Green|Yellow|Blue|Magenta|Cyan|White)$") {
                 return $true
@@ -159,9 +164,7 @@ function printText {
             return $false
         }
         if ($T) {
-
             $ansiCodeRef.Value = ansiEscape
-
             if (checkTextAnimation) {
                 applyTextAnimation $TA ($ansiCodeRef)
             }
@@ -174,16 +177,16 @@ function printText {
             if (checkFontStyle) {
                 applyFontStyle $FS ($ansiCodeRef)
             }
-
             applyText $T ($ansiCodeRef)
-            return $true
         }
-        return $false
+        if ($C) {
+            if (parseCommands "rst", "test", "test2") {
+                resetAnsi
+            }
+        }
     }
-    if (parseArguments ([ref] $ansiCode)) {      
-        Write-Host $ansiCode
-        if (parseGlobalFlags "rst") {
-            resetAnsi
-        } 
-    }
+    parseArguments ([ref] $ansiCode)
 }
+
+#printText -T "Hello" -TA "blink"
+printText -T "Text" -FS "ib"
