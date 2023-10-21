@@ -232,20 +232,3 @@ function printText {
     }
     parseArguments ([ref] $ansiCode)
 }
-
-# $myRefVar
-# $loadProgress
-
-printText -t "foo" -fc green -fs "b"
-printText -t "bar" -fc red -fs "i" -f "nnl"
-printText -t "baz" -fc green -bc black -fs "b" -f "nnl", "rv"
-printText -t "foo2" -fc blue -bc white -f "nnl"
-printText -t "foo2" -fc yellow -bc blue -ta "blink" -f "nnl"
-printText -t "bar2" -fc magenta -fs "ibu" -f "nnl" "rst"
-printText -t "baz" -fc black -bc white -fs "is"
-
-# printText -T "Proceed ( % )" -FS "ib" -V ([ref] $myRefVar)
-# printText -T "Loading... %%%%" -V ([ref] $loadProgress)
-# printText -T "98\%" -V ([ref] $loadProgress)
-# printText -T "Y" -FS "b" -V ([ref] $myRefVar)
-# printText -T "N" -FS "i" -V ([ref] $myRefVar)
