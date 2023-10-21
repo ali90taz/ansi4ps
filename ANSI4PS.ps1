@@ -1,5 +1,5 @@
 
-# ANSI4PS by Alisson dos Santos - Version 1.2.0
+# ANSI4PS by Alisson dos Santos - Version 1.2.0b
 
 function printText {
     Param (
