@@ -1,24 +1,26 @@
 
-# ANSI4PS by Alisson dos Santos - Version 1.2.0b
+# ANSI4PS by Alisson dos Santos - Version 1.2.4b
 
 function printText {
+
     Param (
         [Parameter()] [string] $T,
         [Parameter()] $FC,
         [Parameter()] $BC,
         [Parameter()] [string] $FS,
         [Parameter()] [string] $TA,
-        [Parameter()] [string[]] $C
-    )  
+        [Parameter()] [string[]] $F
+    )
+  
     [string] $ansiCode = ''
-    [string[]] $globalCommands = "rst", "test", "test2"
+    [string[]] $globalFlags = "rst", "rv", "nnl"
+
     function ansiEscape { 
         return "$([char]27)" + "[" 
     }
-    function resetAnsi { 
-       return ansiEscape + "0m" 
-    }
-    function psColorToAnsiColor ($psColor) {   
+
+    function psColorToAnsiColor ($psColor) {
+       
         switch ($psColor) {
             Black   { return "0" }
             Red     { return "1" }
@@ -31,72 +33,90 @@ function printText {
             default { return "9" }
         }
     }
-    function parseCommands ([string[]] $commands) {     
-        if ($C.Count -eq 0) {
+
+    function parseFlags ([string[]] $flags) { 
+        
+        if ($F.Count -eq 0) {
             return $false
         }
-        if ($C.Count -gt 1) {
+
+        if ($F.Count -gt 1) {
             
             $i = 0
-            $C.ForEach({
-                if ($globalCommands -notcontains $C[$i]) {
+
+            $F.ForEach({
+                if ($globalFlags -notcontains $F[$i]) {
                     return $false
                 }
                 ++$i
             })
+
             $i = 0
             $match = 0
-            $commands.ForEach({
-                if ($C -contains $commands[$i]) {
+
+            $flags.ForEach({
+                if ($F -contains $flags[$i]) {
                     ++$match
                 }
                 ++$i
             })
-            if ($match -eq $commands.Count) {
+
+            if ($match -eq $flags.Count) {
                 return $true
             } else {
                 return $false
             }
         }
-        if ($globalCommands -notcontains $C[0]) {
+
+        if ($globalFlags -notcontains $F[0]) {
             return $false
         }
+
         $i = 0
         $match = 0
-        $commands.ForEach({
-            if ($C -contains $commands[$i]) {
+
+        $flags.ForEach({
+            if ($F -contains $flags[$i]) {
                 ++$match
             }
             ++$i
         })
-        if ($match -eq $commands.Count) {
+
+        if ($match -eq $flags.Count) {
             return $true
         } else {
             return $false
         }
     }
+
     function applyTextAnimation ([string] $aniFlags, [ref][string] $ansiCodeRef) {
         $ansiCodeRef.Value += "5"
     }
+
     function applyForegroundColor ($color, [ref][string] $ansiCodeRef) {
+
         if ($ansiCodeRef.Value -match "[\[]{1}$") {
             $ansiCodeRef.Value += "3" + (psColorToAnsiColor $color)
         } else {
             $ansiCodeRef.Value += ";3" + (psColorToAnsiColor $color)
         }
     }
+
     function applyBackgroundColor ($color, [ref][string] $ansiCodeRef) {
+
         if ($ansiCodeRef.Value -match "[\[]{1}$") {
             $ansiCodeRef.Value += "4" + (psColorToAnsiColor $color)
         } else {
             $ansiCodeRef.Value += ";4" + (psColorToAnsiColor $color)
         }
     }
+
     function applyFontStyle ([string] $styleFlags, [ref][string] $ansiCodeRef) {
         
         $bold = '1'
         $italic = '3'
         $underline = '4'
+        $reverse = '7'
         $strikethrough = '9'
 
         if ($styleFlags -match "b") {
@@ -106,51 +126,80 @@ function printText {
                 $ansiCodeRef.Value += ";" + $bold
             }
         }
+
         if ($styleFlags -match "i") {
+
             if ($ansiCodeRef.Value -match "[\[]{1}$") {
                 $ansiCodeRef.Value += $italic
             } else {
                 $ansiCodeRef.Value += ";" + $italic
             }
         }
+
         if ($styleFlags -match "u") {
+
             if ($ansiCodeRef.Value -match "[\[]{1}$") {
                 $ansiCodeRef.Value += $underline
             } else {
                 $ansiCodeRef.Value += ";" + $underline
             }
         }
+
         if ($styleFlags -match "s") {
+
             if ($ansiCodeRef.Value -match "[\[]{1}$") {
                 $ansiCodeRef.Value += $strikethrough
             } else {
                 $ansiCodeRef.Value += ";" + $strikethrough
             }
         }
+
+        if (parseFlags "rv") {
+            if ($ansiCodeRef.Value -match "[\[]{1}$") {
+                $ansiCodeRef.Value += $reverse
+            } else {
+                $ansiCodeRef.Value += ";" + $reverse
+            }
+        }
     }
+
     function applyText ([string] $text, [ref][string] $ansiCodeRef) {
         $ansiCodeRef.Value += 'm' + $text
-        Write-Host $ansiCode
+
+        if (parseFlags "rst") {
+            $ansiCodeRef += ansiEscape + "m"
+        }
+
+        if (parseFlags "nnl") {
+            Write-Host -NoNewline $ansiCode
+        } else {
+            Write-Host $ansiCode
+        }
     }
+
     function parseArguments ([ref][string] $ansiCodeRef){
+
         function checkTextAnimation {
             if ($TA -match "^(Blink)$") {
                 return $true
             }
             return $false
-        }                     
+        }
+                             
         function checkForegroundColor {
             if ($FC -match "^(Black|Red|Green|Yellow|Blue|Magenta|Cyan|White)$") {
                 return $true
             }
             return $false
         }
+
         function checkBackgroundColor {
             if ($BC -match "^(Black|Red|Green|Yellow|Blue|Magenta|Cyan|White)$") {
                 return $true
             }
             return $false
         }
+
         function checkFontStyle {
 
             # This extremely complex piece of REGEX was
@@ -163,6 +212,7 @@ function printText {
             }
             return $false
         }
+
         if ($T) {
             $ansiCodeRef.Value = ansiEscape
             if (checkTextAnimation) {
@@ -179,14 +229,23 @@ function printText {
             }
             applyText $T ($ansiCodeRef)
         }
-        if ($C) {
-            if (parseCommands "rst", "test", "test2") {
-                resetAnsi
-            }
-        }
     }
     parseArguments ([ref] $ansiCode)
 }
 
-#printText -T "Hello" -TA "blink"
-printText -T "Text" -FS "ib"
+# $myRefVar
+# $loadProgress
+
+printText -t "foo" -fc green -fs "b"
+printText -t "bar" -fc red -fs "i" -f "nnl"
+printText -t "baz" -fc green -bc black -fs "b" -f "nnl", "rv"
+printText -t "foo2" -fc blue -bc white -f "nnl"
+printText -t "foo2" -fc yellow -bc blue -ta "blink" -f "nnl"
+printText -t "bar2" -fc magenta -fs "ibu" -f "nnl" "rst"
+printText -t "baz" -fc black -bc white -fs "is"
+
+# printText -T "Proceed ( % )" -FS "ib" -V ([ref] $myRefVar)
+# printText -T "Loading... %%%%" -V ([ref] $loadProgress)
+# printText -T "98\%" -V ([ref] $loadProgress)
+# printText -T "Y" -FS "b" -V ([ref] $myRefVar)
+# printText -T "N" -FS "i" -V ([ref] $myRefVar)

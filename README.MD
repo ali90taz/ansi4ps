@@ -14,7 +14,7 @@ It's done, now you can access the printText function in the ANSI4PS.ps1 file.
 
 There is only one function in this file called printText, I chose this approach to not generate unnecessary complexity, below you can see which options this function accepts.
 
-*printText* *-T* <any_string> *-FC* <foreground_color> *-BC* <background_color> *-FS* <font_style> *-TA* <text_animation>
+*printText* *-T* <any_string> *-FC* <foreground_color> *-BC* <background_color> *-FS* <font_style> *-TA* <text_animation> *-F* <flag_1, flag2, ...>
 
 *-T* means (T)ext and accepts string values, example: *'foo_bar'* or *"foo_bar"*
 
@@ -50,10 +50,10 @@ You can use all values at same time or use single or two or three, in any order.
 
 The possible values is:
 
-- *"b"* Bold font.
-- *"i"* Italic font.
-- *"u"* Underline font.
-- *"s"* Strikethrough font.
+- *"b"* - Bold font.
+- *"i"* - Italic font.
+- *"u"* - Underline font.
+- *"s"* - Strikethrough font.
 
 Any other value is not accepted.
 
@@ -61,7 +61,19 @@ Any other value is not accepted.
 
 For now the possible values is:
 
-- *"blink"* Blinks text.
+- *"blink"* - Blinks text.
+
+*-F* means (F)lags and accepts words enclosed by quotation marks, example: "nnl", "rv", "rst".
+
+For now the possible values is:
+
+- *"rv"* - Reverse text, minor issues, experimental feature.
+- *"rst"* - Resets ANSI parameters.
+- *"nnl"* - No new line mode, subsequent text does not go to the next line.
+
+### Changelog
+
+[Link](https://github.com/ali90taz/ansi4ps/blob/master/CHANGELOG.TXT)
 
 ### License
 

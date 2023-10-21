@@ -1,11 +1,26 @@
 
 ANSI4PS Changelog:
 
-Version 1.1.0 - [10/20/23 06:53 AM] - Added blink text functionality
+Version 1.2.4b - [10/21/23 03:17 PM] - Added option to accept flags
 
     Added:
-        Blinks text functionality
-        Updadated README.MD
+        Flags option, for now "rst", "rv", and "nnl", check readme for details.
+        Minor code revision, more consise.
+    Limitations: 
+        Very limited colors support, eight per plane.
+        Texts and backgrounds of the same color are not corrected.
+        Don't support unicode characters.
+    Issues:
+        Strange behaviors when used
+        in conjunction with native text.
+        When using reverse mode some weird issues happening,
+        experimental feature.
+
+Version 1.1.0b - [10/20/23 06:53 AM] - Added blink text functionality
+
+    Added:
+        Blinks text functionality.
+        Updadated README.MD.
     Limitations: 
         Very limited colors support, eight per plane.
         Texts and backgrounds of the same color are not corrected.
@@ -13,7 +28,7 @@ Version 1.1.0 - [10/20/23 06:53 AM] - Added blink text functionality
         Strange behaviors when used
         in conjunction with native text.        
 
-Version 1.0.7 - [10/20/23 05:00 AM] - First public release
+Version 1.0.7b - [10/20/23 05:00 AM] - First public release
     
     Limitations: 
         No text animation.
