@@ -1,6 +1,6 @@
 ## ANSI4PS 
 
-This is my personal implementation of the ANSI standard, it allows you to very conveniently print texts in Power Shell using up to 8 different colors for the text and background, as well as allowing you to add Italic, Bold, Underline and Strikethrough.
+This is my own implementation of the ANSI standard for PowerShell, it allows you to very conveniently print texts in PowerShell using up to 8 different colors for the text and background, as well as allowing you to add Italic, Bold, Underline and Strikethrough, and more... check out.
 
 ## How to add to my script?
 
