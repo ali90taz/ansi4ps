@@ -7,9 +7,11 @@ function printText {
         [Parameter()] $FC,
         [Parameter()] $BC,
         [Parameter()] [string] $FS,
-        [Parameter()] [string] $TA
+        [Parameter()] [string] $TA,
+        [Parameter()] [string[]] $GF
     )   
     [string] $ansiCode = ''
+    [string[]] $globalFlags = "rst"
     function ansiEscape { 
         return "$([char]27)" + "[" 
     }
@@ -27,6 +29,46 @@ function printText {
             Cyan    { return "6" }
             White   { return "7" }
             default { return "9" }
+        }
+    }
+    function parseGlobalFlags ([string[]] $flags) { 
+        
+        if ($GF[0].Length -lt 1) {
+            return $false
+        }
+
+        if ($GF.Count -gt 1) {
+            
+            $i = 0
+            $GF.ForEach({
+                if ($globalFlags -notcontains $GF[$i]) {
+                    return $false
+                }
+                ++$i
+            })
+            $i = 0
+            $match = 0
+            $flags.ForEach({
+                if ($GF -contains $flags[$i]) {
+                    ++$match
+                }
+                ++$i
+            })
+            if ($match -eq $flags) {
+                return $true
+            } else {
+                return $false
+            }
+        }
+
+        if ($globalFlags -notcontains $GF[0]) {
+            return $false
+        }
+
+        if ($flags -contains $GF[0]) {
+            return true
+        } else {
+            return $false
         }
     }
     function applyTextAnimation ([string] $aniFlags, [ref][string] $ansiCodeRef) {
@@ -138,9 +180,10 @@ function printText {
         }
         return $false
     }
-    if (parseArguments ([ref] $ansiCode)) {
-        
+    if (parseArguments ([ref] $ansiCode)) {      
         Write-Host $ansiCode
-        resetAnsi
+        if (parseGlobalFlags "rst") {
+            resetAnsi
+        } 
     }
 }
