@@ -1,22 +1,107 @@
 
 # ANSI4PS by Alisson dos Santos - Version 1.2.4b
 
+$Global:refBuffer = @{}
+
 function printText {
 
+    <#
+        .SYNOPSIS 
+            Prints the text in PowerShell console using the ANSI engine.
+        .PARAMETER T
+            Specifies the text string.
+        .PARAMETER URT
+            Specifies the new text for reference.
+        .PARAMETER RF
+            Specifies the reference name.
+        .PARAMETER FC
+            Specifies the foreground color, valid for the text and reference text.
+        .PARAMETER BC
+            Specifies the background color, valid for the text and reference text.
+        .PARAMETER FS
+            Specifies the font style, valid for the text and reference text.
+        .PARAMETER TA
+            Specifies the animation, valid for the text and reference text.
+        .PARAMETER F
+            Specifies the flags.        
+    #>
+
     Param (
-        [Parameter()] [string] $T,
-        [Parameter()] $FC,
-        [Parameter()] $BC,
-        [Parameter()] [string] $FS,
-        [Parameter()] [string] $TA,
-        [Parameter()] [string[]] $F
+        [Parameter()][Alias("Text", "String")][string] $T,
+        [Parameter()][Alias("UpdateReferenceText", "ReferenceText")][string] $URT,
+        [Parameter()][Alias("ReferenceName")][string] $RF,
+        [Parameter()][Alias("ForegroundColor", "Color")] $FC,
+        [Parameter()][Alias("BackgroundColor")] $BC,
+        [Parameter()][Alias("FontStyle")][string] $FS,
+        [Parameter()][Alias("TextAnimation", "Animation")][string] $TA,
+        [Parameter()][Alias("Flags")][string[]] $F
     )
   
-    [string] $ansiCode = ''
-    [string[]] $globalFlags = "rst", "rv", "nnl"
+    enum Flags {
 
-    function ansiEscape { 
-        return "$([char]27)" + "[" 
+        RESET_ANSI
+        REVERSE_VIDEO
+        NO_NEW_LINE
+        DEBUG
+        CLEAR_BUFFER
+        WITH_REFERENCES
+    }
+
+    function getFlag ($flag) {
+        switch ($flag) {
+            ([Flags]::RESET_ANSI) { return "rst" }
+            ([Flags]::REVERSE_VIDEO) { return "rv" }
+            ([Flags]::NO_NEW_LINE) { return "nnl" }
+            ([Flags]::DEBUG) { return "dbg" }
+            ([Flags]::CLEAR_BUFFER) { return "clb" }
+            ([Flags]::WITH_REFERENCES) { return "wr" }
+        }
+    }
+
+    [string] $debugHeader = "ANSI4PS DEBUG MODE"
+    [string] $Global:ansiCode = ''
+    $Global:validExpressions = New-Object System.Collections.Generic.List[System.Object]
+    $Global:validExpressionsIndex = New-Object System.Collections.Generic.List[System.Object]
+    [bool] $Global:allExpressionsMatch = $false
+    $Global:validExpressionsLength = New-Object System.Collections.Generic.List[System.Object]
+    $errorLog = New-Object System.Collections.Generic.List[System.Object]
+    $warningLog = New-Object System.Collections.Generic.List[System.Object]
+    $messageLog = New-Object System.Collections.Generic.List[System.Object]
+    [string] $refName = "refName"
+    [string] $refValue = "refValue"
+    [string] $refIndex = "refIndex"
+    [string] $refLength = "refLength"
+    [string] $ansiEscape = "$([char]27)" + "["
+    [bool] $Global:referencesReady = $false
+
+    function addError ($err) {
+
+    }
+
+    function addWarning ($warn) {
+
+    }
+
+    function addMessage ($msg) {
+
+    }
+
+    function showError ([string[]] $err) {
+        if (parseFlags (getFlag ([Flags]::DEBUG))) {
+            Write-Host -ForegroundColor Red ("Error: " + $err)
+        }
+    }
+
+    function showWarning ([string[]] $warn) {
+        if (parseFlags (getFlag ([Flags]::DEBUG))) {
+            Write-Host -ForegroundColor Yellow ("Warning: " + $warn)
+        }
+    }
+
+    function showMessage ([string[]] $msg) {
+        if (parseFlags (getFlag ([Flags]::DEBUG))) {
+            Write-Host -ForegroundColor White ("Message: " + $msg)
+        }
     }
 
     function psColorToAnsiColor ($psColor) {
@@ -35,6 +120,24 @@ function printText {
     }
 
     function parseFlags ([string[]] $flags) { 
+
+        function checkFlag ([string] $flag) {
+            
+            $i = 0
+            $match = $false
+
+            [Enum]::GetValues('Flags').ForEach({
+                if ((getFlag ([Flags].GetEnumName($i))) -eq $flag) {
+                    $match  = $true
+                }
+                ++$i
+            })
+            if ($match) {
+                return $true
+            } else {
+                return $false
+            } 
+        }
         
         if ($F.Count -eq 0) {
             return $false
@@ -45,10 +148,10 @@ function printText {
             $i = 0
 
             $F.ForEach({
-                if ($globalFlags -notcontains $F[$i]) {
-                    return $false
+                if (checkFlag $F[$i]) {
+                    ++$i
                 }
-                ++$i
+                return $false
             })
 
             $i = 0
@@ -68,50 +171,36 @@ function printText {
             }
         }
 
-        if ($globalFlags -notcontains $F[0]) {
-            return $false
-        }
-
-        $i = 0
-        $match = 0
-
-        $flags.ForEach({
-            if ($F -contains $flags[$i]) {
-                ++$match
+        if (checkFlag $F[0]) {
+            if ($flags -contains $F[0]) {
+                return $true
+            } else {
+                return $false
             }
-            ++$i
-        })
-
-        if ($match -eq $flags.Count) {
-            return $true
-        } else {
-            return $false
         }
     }
 
-    function applyTextAnimation ([string] $aniFlags, [ref][string] $ansiCodeRef) {
-        $ansiCodeRef.Value += "5"
+    function applyTextAnimation ([string] $aniFlags) {
+        $Global:ansiCode += "5"
     }
 
-    function applyForegroundColor ($color, [ref][string] $ansiCodeRef) {
-
-        if ($ansiCodeRef.Value -match "[\[]{1}$") {
-            $ansiCodeRef.Value += "3" + (psColorToAnsiColor $color)
+    function applyForegroundColor ($color) {
+        if ($Global:ansiCode -match "[\[]{1}$") {
+            $Global:ansiCode += "3" + (psColorToAnsiColor $color)
         } else {
-            $ansiCodeRef.Value += ";3" + (psColorToAnsiColor $color)
+            $Global:ansiCode += ";3" + (psColorToAnsiColor $color)
         }
     }
 
-    function applyBackgroundColor ($color, [ref][string] $ansiCodeRef) {
-
-        if ($ansiCodeRef.Value -match "[\[]{1}$") {
-            $ansiCodeRef.Value += "4" + (psColorToAnsiColor $color)
+    function applyBackgroundColor ($color) {
+        if ($Global:ansiCode -match "[\[]{1}$") {
+            $Global:ansiCode += "4" + (psColorToAnsiColor $color)
         } else {
-            $ansiCodeRef.Value += ";4" + (psColorToAnsiColor $color)
+            $Global:ansiCode += ";4" + (psColorToAnsiColor $color)
         }
     }
 
-    function applyFontStyle ([string] $styleFlags, [ref][string] $ansiCodeRef) {
+    function applyFontStyle ([string] $styleFlags) {
         
         $bold = '1'
         $italic = '3'
@@ -120,65 +209,99 @@ function printText {
         $strikethrough = '9'
 
         if ($styleFlags -match "b") {
-            if ($ansiCodeRef.Value -match "[\[]{1}$") {
-                $ansiCodeRef.Value += $bold
+            if ($Global:ansiCode -match "[\[]{1}$") {
+                $Global:ansiCode += $bold
             } else {
-                $ansiCodeRef.Value += ";" + $bold
+                $Global:ansiCode += ";" + $bold
             }
         }
 
         if ($styleFlags -match "i") {
-
-            if ($ansiCodeRef.Value -match "[\[]{1}$") {
-                $ansiCodeRef.Value += $italic
+            if ($global:ansiCode -match "[\[]{1}$") {
+                $global:ansiCode += $italic
             } else {
-                $ansiCodeRef.Value += ";" + $italic
+                $global:ansiCode += ";" + $italic
             }
         }
 
         if ($styleFlags -match "u") {
-
-            if ($ansiCodeRef.Value -match "[\[]{1}$") {
-                $ansiCodeRef.Value += $underline
+            if ($global:ansiCode -match "[\[]{1}$") {
+                $global:ansiCode += $underline
             } else {
-                $ansiCodeRef.Value += ";" + $underline
+                $global:ansiCode += ";" + $underline
             }
         }
 
         if ($styleFlags -match "s") {
-
-            if ($ansiCodeRef.Value -match "[\[]{1}$") {
-                $ansiCodeRef.Value += $strikethrough
+            if ($global:ansiCode -match "[\[]{1}$") {
+                $global:ansiCode += $strikethrough
             } else {
-                $ansiCodeRef.Value += ";" + $strikethrough
+                $global:ansiCode += ";" + $strikethrough
             }
         }
 
-        if (parseFlags "rv") {
-            if ($ansiCodeRef.Value -match "[\[]{1}$") {
-                $ansiCodeRef.Value += $reverse
+        if (parseFlags (getFlag ([Flags]::REVERSE_VIDEO))) {
+            if ($global:ansiCode -match "[\[]{1}$") {
+                $global:ansiCode += $reverse
             } else {
-                $ansiCodeRef.Value += ";" + $reverse
+                $global:ansiCode += ";" + $reverse
             }
         }
     }
 
-    function applyText ([string] $text, [ref][string] $ansiCodeRef) {
-        $ansiCodeRef.Value += 'm' + $text
+    function applyText ([string] $text, [ref][string] $global:ansiCode) {
 
-        if (parseFlags "rst") {
-            $ansiCodeRef += ansiEscape + "m"
-        }
+        if ($referencesReady) {
 
-        if (parseFlags "nnl") {
-            Write-Host -NoNewline $ansiCode
+            $expressionPattern = "(?:(%\()([^\d][\s|\w]+),([\s|\d]+)(\)))"
+            $expressionsMatches = [regex]::Matches($T, $expressionPattern)
+            $i = 0
+
+            $expressionsMatches.ForEach({
+                
+            })
         } else {
-            Write-Host $ansiCode
+            $global:ansiCode += 'm' + $text
+        }
+
+        if (parseFlags (getFlag ([Flags]::RESET_ANSI))) {
+            $global:ansiCode += $ansiEscape + "m"
+        }
+
+        if (parseFlags (getFlag ([Flags]::NO_NEW_LINE))) {
+            Write-Host -NoNewline $Global:ansiCode
+        } else {
+            Write-Host $Global:ansiCode
         }
     }
 
-    function parseArguments ([ref][string] $ansiCodeRef){
+    function addExpressions {        
+        
+        $expressionPattern = "^(?<$($refName)>[^\d]\w+),(?<$($refValue)>\d+)$"
+        $expressionData
+        $refData = @{}
+        $i = 0
 
+        foreach ($expression in $validExpressions) {
+
+        # https://devblogs.microsoft.com/scripting/regular-expressions-regex-grouping-regex/
+        # After hours of research I found how get the value of a regex group
+        # using only the name, but the crucial detail for
+        # work is to use [0] the index selector in the result without this
+        # doesn't work, I only discovered this in this link because all
+        # others do not show this.
+
+            $expressionData = [Regex]::Matches($expression, $expressionPattern)
+            $refData.Add($refValue, $expressionData[0].Groups[$refValue].Value)
+            $refData.Add($refIndex, $validExpressionsIndex[$i])
+            $refData.Add($refLength, $validExpressionsLength[$i])
+            $Global:refBuffer.Add($expressionData[0].Groups[$refName].Value, $refData)
+            ++$i
+        }
+        $Global:referencesReady = $true
+    }
+
+    function parseArguments {
         function checkTextAnimation {
             if ($TA -match "^(Blink)$") {
                 return $true
@@ -186,7 +309,7 @@ function printText {
             return $false
         }
                              
-        function checkForegroundColor {
+         function checkForegroundColor {
             if ($FC -match "^(Black|Red|Green|Yellow|Blue|Magenta|Cyan|White)$") {
                 return $true
             }
@@ -202,10 +325,7 @@ function printText {
 
         function checkFontStyle {
 
-            # This extremely complex piece of REGEX was
-            # taken and adapted from the following link:
             # https://stackoverflow.com/posts/46964463/revisions
-            # My current knowledge does not allow me to understand how it works
 
             if ($FS -match "^(?!.*(.).*\1)[b|i|u|s]+$") {
                 return $true
@@ -213,22 +333,118 @@ function printText {
             return $false
         }
 
-        if ($T) {
-            $ansiCodeRef.Value = ansiEscape
-            if (checkTextAnimation) {
-                applyTextAnimation $TA ($ansiCodeRef)
+        function checkExpressions {
+            
+            # https://powershellone.wordpress.com/2021/02/24/using-powershell-and-regex-to-extract-text-between-delimiters/
+
+            $weakPattern = "(?<=%\().+?(?=\))"
+            $syntaxPattern = "^([^\d][\w]+,[\d]+)"
+            $expressions = [regex]::Matches($T, $weakPattern)
+            $match = 0
+            $i = 0
+
+            function trimSpaces ($str) {
+                $tmp = $str.replace(' ', '')
+                return $tmp
             }
-            if (checkForegroundColor) {
-                applyForegroundColor $FC ($ansiCodeRef)
+
+            if($expressions.Count) {
+
+                $Global:validExpressions = ("." * $expressions.Count)
+
+                foreach ($expression in $expressions){
+                    if ((trimSpaces $expression.Value) -match $syntaxPattern) {
+                        $Global:validExpressions.Add((trimSpaces $expression.Value))
+                        $Global:validExpressionsIndex.Add(($expression.Index - 2))  # 2 meaning "%(" chars
+                        $Global:validExpressionsLength.Add(($expression.Value.Length + 3)) # 3 meaning "%()" chars
+                        ++$match
+                        ++$i
+                    } else {
+                        Write-Host ("Invalid expression in the text: " + (trimSpaces $expression.Value))
+                    }
+                }
+                if ($match -eq $expressions.Count) {
+                    $Global:allExpressionsMatch = $true
+                    return $true
+                } else {
+                    $Global:allExpressionsMatch = $false
+                    return $false
+                }
+            } else {
+                return $false
             }
-            if (checkBackgroundColor) {
-                applyBackgroundColor $BC ($ansiCodeRef)
+        }
+
+        if (($T.Length -gt 0) -and ($URT.Length -eq 0)) {
+
+            $global:ansiCode = $ansiEscape
+            
+            if (parseFlags (getFlag ([Flags]::WITH_REFERENCES))) {
+                
+                if (checkExpressions) {
+                    addExpressions
+                }
+
+                if ($allExpressionsMatch) {
+                    if (checkTextAnimation) {
+                        applyTextAnimation $TA
+                    }
+                    if (checkForegroundColor) {
+                        applyForegroundColor $FC
+                    }
+                    if (checkBackgroundColor) {
+                        applyBackgroundColor $BC
+                    }
+                    if (checkFontStyle) {
+                        applyFontStyle $FS
+                    }
+        
+                    applyText $T
+                }
             }
-            if (checkFontStyle) {
-                applyFontStyle $FS ($ansiCodeRef)
-            }
-            applyText $T ($ansiCodeRef)
+
+            if ((parseFlags (getFlag ([Flags]::WITH_REFERENCES))) -eq $false) {
+                
+                if (checkTextAnimation) {
+                    applyTextAnimation $TA
+                }
+                if (checkForegroundColor) {
+                    applyForegroundColor $FC
+                }
+                if (checkBackgroundColor) {
+                    applyBackgroundColor $BC
+                }
+                if (checkFontStyle) {
+                    applyFontStyle $FS
+                }
+    
+                applyText $T
+            }           
+        }
+
+        if (($URT.Length -gt 0) -and ($T.Length -eq 0)) {
+
+        }
+
+        if ($T -and $URT) {
+            addWarning "The parameters 'T' and 'URT' should be not used at same time."
+        }
+
+        if (parseFlags (getFlag ([Flags]::CLEAR_BUFFER))) {
+            Clear-Variable -Name refBuffer -Scope Global
+            addMessage "The refBuffer it's cleared successfully."
         }
     }
-    parseArguments ([ref] $ansiCode)
+
+    parseArguments
+    
+    if (parseFlags (getFlag ([Flags]::DEBUG))) {
+        Clear-Host
+        Write-Host -ForegroundColor Cyan ($debugHeader + "`n`n")
+        showError $errorLog
+        showWarning $warningLog
+        showMessage $messageLog
+    }
 }
+
+printText -T "Installing electron... %( electronProgress, 4 ) %( nodeProgress, 7 )" -F "wr"
